@@ -1,0 +1,44 @@
+{
+  "name": "@civ-clone/base-government-change",
+  "version": "0.1.0",
+  "description": "How a player changes government: a revolution kept as a pending effect, the interim government while it lasts, how long it lasts, choosing the new one, which governments are available, and what a change sets off, for a ruleset to wrap in its own rules.",
+  "repository": "git@github.com:civ-clone/base-government-change.git",
+  "keywords": [
+    "typescript",
+    "civilization"
+  ],
+  "author": "dom111 <dom111@users.noreply.github.com>",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "build": "npm run ts:compile && npm run prettier:format",
+    "prettier:check": "prettier --config .prettierrc --check '**/*.ts'",
+    "prettier:format": "prettier --config .prettierrc '**/*.ts' --write",
+    "test": "ts-mocha ./tests/*.test.ts",
+    "ts:compile": "tsc --build tsconfig.json"
+  },
+  "devDependencies": {
+    "@civ-clone/core-game": "^0.1.17",
+    "@types/chai": "^4.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^16.0.0",
+    "chai": "^4.0.0",
+    "mocha": "^10.0.0",
+    "prettier": "^2.8.8",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^4.0.0"
+  },
+  "dependencies": {
+    "@civ-clone/base-player-action-choose-government": "^0.1.0",
+    "@civ-clone/base-player-action-revolution": "^0.1.1",
+    "@civ-clone/core-engine": "^0.1.6",
+    "@civ-clone/core-government": "^0.1.6",
+    "@civ-clone/core-pending-effect": "^0.1.2",
+    "@civ-clone/core-player": "^0.1.10",
+    "@civ-clone/core-player-world": "^0.1.14",
+    "@civ-clone/core-requirement": "^0.1.3",
+    "@civ-clone/core-rule": "^0.1.9",
+    "@civ-clone/core-science": "^0.1.9",
+    "@civ-clone/core-turn-based-game": "^0.1.10"
+  }
+}
