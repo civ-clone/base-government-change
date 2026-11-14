@@ -1,6 +1,6 @@
 {
   "name": "@civ-clone/base-government-change",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "How a player changes government: a revolution kept as a pending effect, the interim government while it lasts, how long it lasts, choosing the new one, which governments are available, and what a change sets off, for a ruleset to wrap in its own rules.",
   "repository": "git@github.com:civ-clone/base-government-change.git",
   "keywords": [
