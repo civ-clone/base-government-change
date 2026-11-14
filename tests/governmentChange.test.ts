@@ -20,6 +20,7 @@ import {
   hasPlayerWorld,
 } from '../lib/changed';
 import { forCause, randomDuration } from '../lib/anarchyDuration';
+import { revolutionTerms, terms } from '../lib/terms';
 import Advance from '@civ-clone/core-science/Advance';
 import AdvanceRegistry from '@civ-clone/core-science/AdvanceRegistry';
 import AnarchyDuration from '../Rules/AnarchyDuration';
@@ -37,6 +38,7 @@ import PlayerGovernmentRegistry from '@civ-clone/core-government/PlayerGovernmen
 import PlayerResearch from '@civ-clone/core-science/PlayerResearch';
 import PlayerWorldRegistry from '@civ-clone/core-player-world/PlayerWorldRegistry';
 import Revolution from '@civ-clone/base-player-action-revolution/Revolution';
+import RevolutionTerms from '../Rules/RevolutionTerms';
 import addPlayerGovernment from '../lib/playerGovernment';
 import { availabilityRulesFor } from '../lib/availability';
 import { expect } from 'chai';
@@ -382,6 +384,38 @@ describe('the actions', (): void => {
     expect(revolutionAction.value()).to.equal(playerGovernment);
     expect(choice.player()).to.equal(player);
     expect(choice.value()).to.equal(playerGovernment);
+  });
+});
+
+describe('revolutionTerms', (): void => {
+  it('is null with no RevolutionTerms rule', (): void => {
+    const { game } = setUp(2);
+
+    expect(revolutionTerms(game.rules)).null;
+  });
+
+  it('gives the key and interim a ruleset registers, which start and finish its revolutions', (): void => {
+    const { game, playerGovernment } = setUp(2);
+
+    game.rules.register(new RevolutionTerms(new Effect(terms(KEY, Interim))));
+
+    const found = revolutionTerms(game.rules)!;
+
+    expect(found).to.deep.equal({ key: KEY, Interim });
+
+    revolution(
+      found.key,
+      found.Interim,
+      playerGovernment,
+      game.pendingEffects,
+      game.rules,
+      game.turn,
+      'chosen'
+    );
+
+    expect(playerGovernment.is(found.Interim)).true;
+    expect(pendingRevolution(KEY, playerGovernment, game.pendingEffects)).not
+      .null;
   });
 });
 
