@@ -8,7 +8,7 @@ How a player changes government, for a ruleset to wrap in its own `Added`, `Acti
 - `Rules/RevolutionTerms`: the rule that names the ruleset's revolution, its handler `key` and `Interim` government, so
   code outside the ruleset (a computer player) can start and finish its revolutions through `lib/revolution`.
   `lib/terms` has `terms(key, Interim)`, the rule's effect, and `revolutionTerms(ruleRegistry)`, which reads it (`null`
-  with no rule).
+  with no rule). A game has one ruleset's terms: if two are registered, the first answer wins.
 - `lib/revolution`: a revolution kept as a `PendingEffect` on the `PlayerGovernment` under the ruleset's own handler
   `key` (a save names it). `revolution(key, Interim, …)` starts one, `turnsUntilChoice` and `pendingRevolution` read
   it, `chooseGovernment` finishes it, and `registerRevolutionHandler` lets one loaded from a save finish.
