@@ -24,6 +24,10 @@ import Player from '@civ-clone/core-player/Player';
 import { RevolutionCause } from '../Rules/AnarchyDuration';
 import addPlayerGovernment from '../lib/playerGovernment';
 import { expect } from 'chai';
+import { gameForLoad } from '@civ-clone/core-save-game/gameForLoad';
+import { hydrate } from '@civ-clone/core-save-game/hydrate';
+import { registerClasses } from '@civ-clone/core-save-game/registerClasses';
+import { save } from '@civ-clone/core-save-game/save';
 
 class Interim extends Government {}
 class Start extends Government {}
@@ -32,7 +36,13 @@ class Later extends Government {}
 const KEY = 'test:revolution';
 
 // A game whose revolutions last 2 turns, with `MayRechoose` rules answering `rechoose` (none when it's empty).
-const setUp = (...rechoose: (() => boolean)[]) => {
+const setUp = (...rechoose: (() => boolean)[]) =>
+  setUpWith(new AnarchyDuration(new Effect((): number => 2)), ...rechoose);
+
+const setUpWith = (
+  duration: AnarchyDuration | null,
+  ...rechoose: (() => boolean)[]
+) => {
   const game = new Game();
 
   game.availableGovernments.register(Interim, Start, Later);
@@ -43,7 +53,7 @@ const setUp = (...rechoose: (() => boolean)[]) => {
           GovernmentType === Start || GovernmentType === Later
       )
     ),
-    new AnarchyDuration(new Effect((): number => 2)),
+    ...(duration === null ? [] : [duration]),
     ...rechoose.map(
       (answer: () => boolean): MayRechoose =>
         new MayRechoose(new Effect(answer))
@@ -280,5 +290,98 @@ describe('choosing again in the same turn', (): void => {
     ).true;
     expect(asked.every((asker: Player): boolean => asker === player)).true;
     expect(asked.length).to.be.greaterThan(1);
+  });
+
+  it('takes no interim even with no `AnarchyDuration` rule, which a revolution otherwise needs', (): void => {
+    const { game, player, playerGovernment, revolt, choose, left } = setUpWith(
+      null,
+      () => true
+    );
+
+    // No duration rule: a revolution can't start, so start one by hand and finish it.
+    game.pendingEffects.register(
+      new PendingEffect(KEY, playerGovernment, {
+        endTurn: String(game.turn.value()),
+      })
+    );
+    choose(Later);
+
+    expect(() => revolt('civil-disorder')).to.throw(
+      RevolutionError,
+      'No `AnarchyDuration` rule applies.'
+    );
+
+    revolt();
+
+    expect(playerGovernment.is(Later)).true;
+    expect(left()).to.equal(0);
+    expect(player).to.equal(playerGovernment.player());
+  });
+
+  it('registers a handler for the record that does nothing, so discharging it is harmless', (): void => {
+    const { game, playerGovernment, revolutionTo, records } = setUp(() => true);
+
+    revolutionTo(Later);
+
+    const [record] = records();
+
+    expect(game.pendingEffects.handlers()).to.include(rechoiceKey(KEY));
+    expect(() => game.pendingEffects.discharge(record)).not.to.throw();
+    expect(playerGovernment.is(Later)).true;
+    expect(records()).to.deep.equal([]);
+  });
+
+  it('keeps the record through a save and a load', (): void => {
+    const { game, playerGovernment, revolutionTo } = setUp(() => true);
+
+    game.engine.registerPlugins({
+      '@civ-clone/base-government-change': 'test',
+    });
+    registerClasses(game);
+    game.classes.register(Interim, Start, Later);
+
+    revolutionTo(Later);
+
+    const file = save(game, { name: 'test', createdAt: 0 }),
+      loaded = gameForLoad({
+        availableUnitImprovements: game.availableUnitImprovements,
+        classes: game.classes,
+        engine: game.engine,
+        rules: game.rules,
+      });
+
+    hydrate(file, loaded);
+    registerRevolutionHandler(KEY, loaded.pendingEffects);
+
+    const [loadedGovernment] = loaded.playerGovernments.entries();
+
+    expect(loadedGovernment).not.to.equal(playerGovernment);
+    expect(loadedGovernment.is(Later)).true;
+    expect(loaded.turn.value()).to.equal(game.turn.value());
+    expect(
+      loaded.pendingEffects
+        .getByHandler(rechoiceKey(KEY))
+        .map((record: PendingEffect) => [record.target(), record.data()])
+    ).to.deep.equal([[loadedGovernment, { turn: String(game.turn.value()) }]]);
+
+    revolution(
+      KEY,
+      Interim,
+      loadedGovernment,
+      loaded.pendingEffects,
+      loaded.rules,
+      loaded.turn,
+      'chosen'
+    );
+
+    expect(loadedGovernment.is(Later)).true;
+    expect(
+      turnsUntilChoice(
+        KEY,
+        loadedGovernment,
+        loaded.pendingEffects,
+        loaded.turn
+      )
+    ).to.equal(0);
   });
 });

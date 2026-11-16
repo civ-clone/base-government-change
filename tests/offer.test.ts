@@ -1,4 +1,5 @@
 import { governmentsOpenedBy, offerGovernments } from '../lib/offer';
+import { PendingEffect } from '@civ-clone/core-pending-effect';
 import Advance from '@civ-clone/core-science/Advance';
 import AdvanceRegistry from '@civ-clone/core-science/AdvanceRegistry';
 import Availability from '@civ-clone/core-government/Rules/Availability';
@@ -21,6 +22,8 @@ class Later extends Government {}
 class Elsewhere extends Government {}
 class Learning extends Advance {}
 class Writing extends Advance {}
+
+const KEY = 'test:revolution';
 
 const entries: Requirement[] = [
   ...table('test:availability', 'requires', [
@@ -47,7 +50,14 @@ const setUp = () => {
     ),
     new Complete(
       new Effect(
-        offerGovernments(entries, game.playerGovernments, game.rules, engine)
+        offerGovernments(
+          KEY,
+          entries,
+          game.playerGovernments,
+          game.pendingEffects,
+          game.rules,
+          engine
+        )
       )
     )
   );
@@ -132,6 +142,54 @@ describe('offerGovernments', (): void => {
     game.rules.register(
       new GovernmentAvailable(new Effect((): boolean => false))
     );
+
+    research.addAdvance(Learning);
+
+    expect(offered).to.deep.equal([]);
+  });
+
+  const offerAll = (game: Game): void =>
+    game.rules.register(
+      new GovernmentAvailable(new Effect((): boolean => true))
+    );
+
+  it('offers nothing while a revolution is under way', (): void => {
+    const { game, player, research, offered } = setUp();
+
+    offerAll(game);
+    game.pendingEffects.register(
+      new PendingEffect(KEY, game.playerGovernments.getByPlayer(player), {
+        endTurn: '5',
+      })
+    );
+
+    research.addAdvance(Learning);
+
+    expect(offered).to.deep.equal([]);
+  });
+
+  it('offers what is under way under another key', (): void => {
+    const { game, player, research, offered } = setUp();
+
+    offerAll(game);
+    game.pendingEffects.register(
+      new PendingEffect(
+        'other:revolution',
+        game.playerGovernments.getByPlayer(player),
+        { endTurn: '5' }
+      )
+    );
+
+    research.addAdvance(Learning);
+
+    expect(offered).to.deep.equal([[player, Later]]);
+  });
+
+  it('offers nothing the player already has', (): void => {
+    const { game, player, research, offered } = setUp();
+
+    offerAll(game);
+    game.playerGovernments.getByPlayer(player).set(new Later());
 
     research.addAdvance(Learning);
 

@@ -1,5 +1,6 @@
 import Advance from '@civ-clone/core-science/Advance';
 import Engine from '@civ-clone/core-engine/Engine';
+import { PendingEffectRegistry } from '@civ-clone/core-pending-effect';
 import Government from '@civ-clone/core-government/Government';
 import PlayerGovernment from '@civ-clone/core-government/PlayerGovernment';
 import { PlayerGovernmentRegistry } from '@civ-clone/core-government/PlayerGovernmentRegistry';
@@ -18,13 +19,16 @@ export declare const governmentsOpenedBy: (
 ) => (typeof Government)[];
 /**
  * A research `Complete` rule's effect that offers a revolution to each government the discovered advance made available
- * (`governmentsOpenedBy`). For each one any `GovernmentAvailable` rule says to offer, the engine emits
- * `player:government:available` with the player and the government, for a client to ask whether to start one. With no
- * `GovernmentAvailable` rules, nothing is offered.
+ * (`governmentsOpenedBy`), other than the one the player already has. For each one any `GovernmentAvailable` rule says
+ * to offer, the engine emits `player:government:available` with the player and the government, for a client to ask
+ * whether to start one. Nothing is offered while a revolution under the handler `key` is under way, nor with no
+ * `GovernmentAvailable` rules.
  */
 export declare const offerGovernments: (
+  key: string,
   entries: readonly Requirement[],
   playerGovernmentRegistry: PlayerGovernmentRegistry,
+  pendingEffects: PendingEffectRegistry,
   ruleRegistry: RuleRegistry,
   engine: Engine
 ) => (playerResearch: PlayerResearch, advance: Advance) => void;

@@ -17,14 +17,15 @@ governments and numbers:
   `RevolutionError` is what they throw.
 - `Rules/MayRechoose`: whether a player may choose its government again, with no interim, in the turn it chose one.
   With no rule that says so, it may not. `lib/rechoice` keeps the turn of the choice as a `PendingEffect` on the
-  `PlayerGovernment` under `<key>:rechoice` (never discharged; the next choice replaces it), written only when
+  `PlayerGovernment` under `<key>:rechoice` (never discharged; the next choice replaces it;
+  `registerRevolutionHandler` registers a handler for it that does nothing), written only when
   `chooseGovernment` is given the game's rules and a `MayRechoose` rule says yes. In that turn, a revolution the player
   chooses (`'chosen'`) starts no interim and makes the choice due at once, whatever `AnarchyDuration` says.
   `mayRechoose`, `chosenThisTurn` and `rechoiceOpen` read it.
 - `Rules/GovernmentAvailable` and `lib/offer`: offering a revolution when an advance makes a government available.
-  `offerGovernments(entries, …)` is a research `Complete` rule's effect: for each government that one of `entries`
-  (the ruleset's "government requires advances" entries) requires the discovered advance for, and that the player may
-  now choose (`governmentsOpenedBy`), it asks the `GovernmentAvailable(player, government)` rules, and when any says
+  `offerGovernments(key, entries, …)` is a research `Complete` rule's effect: for each government that one of
+  `entries` (the ruleset's "government requires advances" entries) requires the discovered advance for, that the player
+  may now choose (`governmentsOpenedBy`) and doesn't already have, unless a revolution under `key` is under way, it asks the `GovernmentAvailable(player, government)` rules, and when any says
   yes the engine emits `player:government:available` with the player and the government. With no `GovernmentAvailable`
   rules, nothing is offered.
 - `lib/actions`: the player `Action` criteria and effects: `notInInterim`, `noRevolutionPending` and `offerRevolution`

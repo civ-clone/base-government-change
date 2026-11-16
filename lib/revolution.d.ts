@@ -17,7 +17,11 @@ export declare const applyChosenGovernment: (
   pendingEffect: PendingEffect,
   GovernmentType: typeof Government
 ) => void;
-/** Registers the handler that finishes a revolution, so one loaded from a save can still be finished. */
+/**
+ * Registers the handler that finishes a revolution, so one loaded from a save can still be finished, and one that does
+ * nothing for the record of a choice (`lib/rechoice`), which owes nothing, so discharging every pending effect can't
+ * throw on it.
+ */
 export declare const registerRevolutionHandler: (
   key: string,
   pendingEffects: PendingEffectRegistry

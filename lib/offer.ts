@@ -1,5 +1,6 @@
 import Advance from '@civ-clone/core-science/Advance';
 import Engine from '@civ-clone/core-engine/Engine';
+import { PendingEffectRegistry } from '@civ-clone/core-pending-effect';
 import Government from '@civ-clone/core-government/Government';
 import GovernmentAvailable from '../Rules/GovernmentAvailable';
 import PlayerGovernment from '@civ-clone/core-government/PlayerGovernment';
@@ -7,6 +8,7 @@ import { PlayerGovernmentRegistry } from '@civ-clone/core-government/PlayerGover
 import PlayerResearch from '@civ-clone/core-science/PlayerResearch';
 import { Requirement } from '@civ-clone/core-requirement/Requirement';
 import { RuleRegistry } from '@civ-clone/core-rule/RuleRegistry';
+import { pendingRevolution } from './revolution';
 
 /**
  * The governments discovering `AdvanceType` made available to the player: each one an entry of `entries` (the rule
@@ -35,14 +37,17 @@ export const governmentsOpenedBy = (
 
 /**
  * A research `Complete` rule's effect that offers a revolution to each government the discovered advance made available
- * (`governmentsOpenedBy`). For each one any `GovernmentAvailable` rule says to offer, the engine emits
- * `player:government:available` with the player and the government, for a client to ask whether to start one. With no
- * `GovernmentAvailable` rules, nothing is offered.
+ * (`governmentsOpenedBy`), other than the one the player already has. For each one any `GovernmentAvailable` rule says
+ * to offer, the engine emits `player:government:available` with the player and the government, for a client to ask
+ * whether to start one. Nothing is offered while a revolution under the handler `key` is under way, nor with no
+ * `GovernmentAvailable` rules.
  */
 export const offerGovernments =
   (
+    key: string,
     entries: readonly Requirement[],
     playerGovernmentRegistry: PlayerGovernmentRegistry,
+    pendingEffects: PendingEffectRegistry,
     ruleRegistry: RuleRegistry,
     engine: Engine
   ): ((playerResearch: PlayerResearch, advance: Advance) => void) =>
@@ -50,7 +55,10 @@ export const offerGovernments =
     const player = playerResearch.player(),
       [playerGovernment] = playerGovernmentRegistry.getBy('player', player);
 
-    if (!playerGovernment) {
+    if (
+      !playerGovernment ||
+      pendingRevolution(key, playerGovernment, pendingEffects) !== null
+    ) {
       return;
     }
 
@@ -60,6 +68,7 @@ export const offerGovernments =
       playerGovernment
     ).forEach((GovernmentType: typeof Government): void => {
       if (
+        !playerGovernment.is(GovernmentType) &&
         ruleRegistry
           .process(GovernmentAvailable, player, GovernmentType)
           .some((offered: boolean): boolean => offered === true)
