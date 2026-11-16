@@ -3,6 +3,7 @@ import {
   PendingEffectRegistry,
 } from '@civ-clone/core-pending-effect';
 import AnarchyDuration, { RevolutionCause } from '../Rules/AnarchyDuration';
+import { mayRechoose, rechoiceOpen, recordChoice } from './rechoice';
 import Government from '@civ-clone/core-government/Government';
 import PlayerGovernment from '@civ-clone/core-government/PlayerGovernment';
 import { RuleRegistry } from '@civ-clone/core-rule/RuleRegistry';
@@ -69,6 +70,10 @@ export const turnsUntilChoice = (
  * answer, never below 0), then chooses a new government. With no interim at
  * all, the choice is due straight away and the current government stays until
  * it is made.
+ *
+ * A player who chose its government this turn, while a `MayRechoose` rule lets
+ * it (`lib/rechoice`), starts no interim at all for a revolution it chooses:
+ * the choice is due straight away, whatever `AnarchyDuration` says.
  */
 export const revolution = (
   key: string,
@@ -81,6 +86,19 @@ export const revolution = (
 ): void => {
   if (pendingRevolution(key, playerGovernment, pendingEffects) !== null) {
     throw new RevolutionError('A revolution is already under way.');
+  }
+
+  if (
+    cause === 'chosen' &&
+    rechoiceOpen(key, playerGovernment, pendingEffects, ruleRegistry, turn)
+  ) {
+    pendingEffects.register(
+      new PendingEffect(key, playerGovernment, {
+        endTurn: String(turn.value()),
+      })
+    );
+
+    return;
   }
 
   const duration = Math.max(
@@ -105,13 +123,18 @@ export const revolution = (
   }
 };
 
-/** Finish a revolution whose interim is over, by choosing one of the available governments. */
+/**
+ * Finish a revolution whose interim is over, by choosing one of the available governments. Given the game's
+ * `ruleRegistry`, and while a `MayRechoose` rule lets the player choose again in the same turn, the choice is recorded
+ * (`lib/rechoice`), so a revolution later in this turn takes no interim.
+ */
 export const chooseGovernment = (
   key: string,
   playerGovernment: PlayerGovernment,
   GovernmentType: typeof Government,
   pendingEffects: PendingEffectRegistry,
-  turn: Turn
+  turn: Turn,
+  ruleRegistry?: RuleRegistry
 ): void => {
   const pendingEffect = pendingRevolution(
     key,
@@ -131,4 +154,11 @@ export const chooseGovernment = (
   }
 
   pendingEffects.discharge(pendingEffect, GovernmentType);
+
+  if (
+    ruleRegistry !== undefined &&
+    mayRechoose(playerGovernment.player(), ruleRegistry)
+  ) {
+    recordChoice(key, playerGovernment, pendingEffects, turn);
+  }
 };

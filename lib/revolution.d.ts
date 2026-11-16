@@ -41,6 +41,10 @@ export declare const turnsUntilChoice: (
  * answer, never below 0), then chooses a new government. With no interim at
  * all, the choice is due straight away and the current government stays until
  * it is made.
+ *
+ * A player who chose its government this turn, while a `MayRechoose` rule lets
+ * it (`lib/rechoice`), starts no interim at all for a revolution it chooses:
+ * the choice is due straight away, whatever `AnarchyDuration` says.
  */
 export declare const revolution: (
   key: string,
@@ -51,11 +55,16 @@ export declare const revolution: (
   turn: Turn,
   cause: RevolutionCause
 ) => void;
-/** Finish a revolution whose interim is over, by choosing one of the available governments. */
+/**
+ * Finish a revolution whose interim is over, by choosing one of the available governments. Given the game's
+ * `ruleRegistry`, and while a `MayRechoose` rule lets the player choose again in the same turn, the choice is recorded
+ * (`lib/rechoice`), so a revolution later in this turn takes no interim.
+ */
 export declare const chooseGovernment: (
   key: string,
   playerGovernment: PlayerGovernment,
   GovernmentType: typeof Government,
   pendingEffects: PendingEffectRegistry,
-  turn: Turn
+  turn: Turn,
+  ruleRegistry?: RuleRegistry
 ) => void;
